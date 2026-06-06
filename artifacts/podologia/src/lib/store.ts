@@ -1,3 +1,15 @@
+export interface NotificacionEnvio {
+  id: string;
+  reservaId: string;
+  clienteId: string;
+  clienteNombre: string;
+  fecha: string;       // fecha de la cita
+  hora: string;
+  servicio: string;
+  enviadoEn: string;   // ISO timestamp del envío
+  metodo: 'whatsapp' | 'copia';
+}
+
 export interface Cliente {
   id: string;
   nombre: string;
@@ -121,11 +133,28 @@ export const store = {
   getLastSaved: (): string | null => localStorage.getItem('podo_last_saved'),
   updateLastSaved: () => localStorage.setItem('podo_last_saved', new Date().toISOString()),
 
+  getNotificaciones: (): NotificacionEnvio[] => {
+    const all: NotificacionEnvio[] = JSON.parse(localStorage.getItem('podo_notificaciones') || '[]');
+    // Auto-purge entries older than 30 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toISOString();
+    return all.filter(n => n.enviadoEn >= cutoffStr);
+  },
+
+  addNotificacion: (entry: NotificacionEnvio): NotificacionEnvio[] => {
+    const current: NotificacionEnvio[] = JSON.parse(localStorage.getItem('podo_notificaciones') || '[]');
+    const updated = [...current, entry];
+    localStorage.setItem('podo_notificaciones', JSON.stringify(updated));
+    return updated;
+  },
+
   reset: () => {
     localStorage.removeItem('podo_clientes');
     localStorage.removeItem('podo_reservas');
     localStorage.removeItem('podo_servicios');
     localStorage.removeItem('podo_last_saved');
+    localStorage.removeItem('podo_notificaciones');
     location.reload();
   },
 
