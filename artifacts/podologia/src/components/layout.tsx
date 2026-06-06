@@ -3,21 +3,22 @@ import { Link, useLocation } from "wouter";
 import {
   Users, Calendar, Search, LayoutDashboard,
   Settings, TrendingUp, Star, LogOut, Activity,
-  Menu, X, Clock
+  Menu, X, Clock, MessageCircle, Cog
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { store } from "@/lib/store";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/reservas", label: "Reservas", icon: Calendar },
-  { href: "/buscar", label: "Buscar DNI", icon: Search },
-  { href: "/frecuentes", label: "Frecuentes", icon: Star },
-  { href: "/reportes", label: "Reportes", icon: TrendingUp },
-  { href: "/precios", label: "Precios", icon: Settings },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
+  { href: "/",              label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/clientes",      label: "Clientes",      icon: Users },
+  { href: "/reservas",      label: "Reservas",      icon: Calendar },
+  { href: "/recordatorios", label: "Recordatorios", icon: MessageCircle },
+  { href: "/buscar",        label: "Buscar DNI",    icon: Search },
+  { href: "/frecuentes",    label: "Frecuentes",    icon: Star },
+  { href: "/reportes",      label: "Reportes",      icon: TrendingUp },
+  { href: "/precios",       label: "Precios",       icon: Settings },
+  { href: "/configuracion", label: "Configuración", icon: Cog },
 ];
 
 function LastSavedLabel() {
@@ -30,7 +31,7 @@ function LastSavedLabel() {
       const diff = Math.floor((Date.now() - new Date(saved).getTime()) / 1000);
       if (diff < 60) setLabel("hace un momento");
       else if (diff < 3600) setLabel(`hace ${Math.floor(diff / 60)} min`);
-      else setLabel(new Date(saved).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+      else setLabel(new Date(saved).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }));
     };
     update();
     const id = setInterval(update, 30000);
@@ -46,22 +47,25 @@ function LastSavedLabel() {
 }
 
 function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () => void }) {
-  const items = navItems.filter(i => i.href !== "/configuracion");
   return (
-    <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-      {items.map((item) => {
+    <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+        const isWa = item.href === "/recordatorios";
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
             data-testid={`nav-${item.href.replace("/", "") || "dashboard"}`}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm ${isActive
-              ? "bg-primary text-primary-foreground font-medium shadow-sm"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all text-sm ${
+              isActive
+                ? "bg-primary text-primary-foreground font-medium shadow-sm"
+                : isWa
+                  ? "text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#1eb554]"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
           >
             <Icon className="w-4 h-4 shrink-0" />
             <span>{item.label}</span>

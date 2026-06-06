@@ -15,6 +15,7 @@ import Frecuentes from "@/pages/frecuentes";
 import Reportes from "@/pages/reportes";
 import Precios from "@/pages/precios";
 import Configuracion from "@/pages/configuracion";
+import Recordatorios from "@/pages/recordatorios";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/reportes" component={Reportes} />
         <Route path="/precios" component={Precios} />
         <Route path="/configuracion" component={Configuracion} />
+        <Route path="/recordatorios" component={Recordatorios} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
