@@ -4,11 +4,12 @@ import {
   Users, Calendar, Search, LayoutDashboard,
   TrendingUp, Star, LogOut, Activity,
   Menu, X, Clock, MessageCircle, Cog, Settings,
-  Wifi, WifiOff, Download
+  Wifi, WifiOff, Download, Command
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { store } from "@/lib/store";
+import { CommandPalette } from "@/components/command-palette";
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
@@ -177,23 +178,53 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [paletteOpen,  setPaletteOpen]  = useState(false);
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handle = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen(v => !v);
+      }
+    };
+    window.addEventListener("keydown", handle);
+    return () => window.removeEventListener("keydown", handle);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-[240px] flex-col h-screen fixed top-0 left-0 z-40 sidebar-dark">
         {/* Logo */}
-        <div className="p-5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+        <div className="p-4 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shrink-0"
             style={{ background: 'linear-gradient(135deg, #2C7DA0, #52B788)' }}>
             <Activity className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white tracking-tight leading-none">PodoClinic</h1>
             <p className="text-[10px] text-white/40 mt-0.5">Sistema de Gestión</p>
           </div>
+        </div>
+
+        {/* Search / Command palette trigger */}
+        <div className="px-3 pt-3 pb-1">
+          <button
+            onClick={() => setPaletteOpen(true)}
+            data-testid="button-command-palette"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-white/50 hover:text-white/80 hover:bg-white/8 transition-all text-xs group"
+            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <Search className="w-3.5 h-3.5 shrink-0 group-hover:text-[#52B788] transition-colors" />
+            <span className="flex-1 text-left">Buscar...</span>
+            <kbd className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <Command className="w-2.5 h-2.5" />K
+            </kbd>
+          </button>
         </div>
 
         <NavLinks location={location} />
