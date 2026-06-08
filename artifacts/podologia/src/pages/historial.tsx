@@ -4,7 +4,7 @@ import { store, Cliente, Reserva, Servicio } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, CalendarPlus, FileText, Edit, Phone, MapPin, Calendar, TrendingUp, Hash } from "lucide-react";
+import { ArrowLeft, CalendarPlus, FileText, Edit, Phone, MapPin, Calendar, TrendingUp, Hash, Stethoscope } from "lucide-react";
 import { exportHistorialPDF } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
 
@@ -84,10 +84,15 @@ export default function Historial() {
             <p className="text-sm text-muted-foreground">{cliente.nombre}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExportPDF} data-testid="button-export-historial-pdf">
-            <FileText className="w-4 h-4 mr-1.5" /> Exportar PDF
+            <FileText className="w-4 h-4 mr-1.5" /> PDF
           </Button>
+          <Link href={`/ficha/${cliente.id}`}>
+            <Button variant="outline" size="sm" data-testid="button-ficha-clinica" className="border-[#52B788]/50 text-[#2d7a52] hover:bg-[#52B788]/10">
+              <Stethoscope className="w-4 h-4 mr-1.5" /> Ficha Clínica
+            </Button>
+          </Link>
           <Link href={`/clientes/${cliente.id}/editar`}>
             <Button variant="outline" size="sm" data-testid="button-editar-cliente">
               <Edit className="w-4 h-4 mr-1.5" /> Editar
