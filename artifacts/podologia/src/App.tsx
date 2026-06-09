@@ -26,7 +26,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/clientes" component={Clientes} />
-        <Route path="/clientes/nuevo" component={ClientesNuevo} />
+        <Route path="/clientes/nuevo">{() => <ClientesNuevo />}</Route>
         <Route path="/clientes/:id/editar" component={ClientesEditar} />
         <Route path="/reservas" component={Reservas} />
         <Route path="/historial/:clienteId" component={Historial} />
