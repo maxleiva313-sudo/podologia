@@ -2,39 +2,234 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { store, Cliente, Reserva, Servicio } from "@/lib/store";
-import { Users, CalendarCheck, TrendingUp, CalendarClock, Star, Clock, ChevronRight, Download } from "lucide-react";
+import { Users, CalendarCheck, TrendingUp, CalendarClock, Star, Clock, ChevronRight, Download, CalendarDays } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-const stateColors: Record<string, { bg: string; text: string; label: string }> = {
-  atendida:    { bg: '#52B788/15', text: '#2d7a52', label: 'Atendida' },
-  pendiente:   { bg: '#2C7DA0/15', text: '#2C7DA0', label: 'Pendiente' },
-  cancelada:   { bg: 'red-100', text: 'red-700', label: 'Cancelada' },
-  reprogramada:{ bg: 'amber-100', text: 'amber-700', label: 'Reprogramada' },
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const STATUS_STYLE: Record<string, { border: string; bg: string; text: string; pill: string; label: string }> = {
+  atendida:    { border: '#1D9E75', bg: '#f0faf5', text: '#0a5c3d', pill: 'bg-[#1D9E75]/15 text-[#0a5c3d]',   label: 'Atendida'     },
+  pendiente:   { border: '#185FA5', bg: '#f0f5ff', text: '#0f3e70', pill: 'bg-[#185FA5]/15 text-[#0f3e70]',   label: 'Pendiente'    },
+  cancelada:   { border: '#dc2626', bg: '#fef2f2', text: '#991b1b', pill: 'bg-red-100 text-red-700',           label: 'Cancelada'    },
+  reprogramada:{ border: '#d97706', bg: '#fffbeb', text: '#92400e', pill: 'bg-amber-100 text-amber-700',       label: 'Reprogramada' },
 };
 
-const stateStyle: Record<string, string> = {
-  atendida:    'bg-[#52B788]/15 text-[#2d7a52] border-[#52B788]/30',
-  pendiente:   'bg-[#2C7DA0]/15 text-[#2C7DA0] border-[#2C7DA0]/30',
-  cancelada:   'bg-red-100 text-red-700 border-red-200',
-  reprogramada:'bg-amber-100 text-amber-700 border-amber-200',
-};
+const WEEKDAYS_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MONTHS_SHORT   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 const cardVariants = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 const container    = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function dateStr(dt: Date) { return dt.toISOString().split('T')[0]; }
+
+function buildWeekDays(from: Date, count = 7) {
+  return Array.from({ length: count }).map((_, i) => {
+    const dt = new Date(from);
+    dt.setDate(from.getDate() + i);
+    return { date: dateStr(dt), weekday: WEEKDAYS_SHORT[dt.getDay()], day: dt.getDate(), month: MONTHS_SHORT[dt.getMonth()] };
+  });
+}
+
+// ─── Weekly agenda widget ─────────────────────────────────────────────────────
+
+function WeekAgenda({ reservas, clientes, servicios, today }: {
+  reservas: Reserva[]; clientes: Cliente[]; servicios: Servicio[]; today: string;
+}) {
+  const [selected, setSelected] = useState(today);
+  const weekDays = buildWeekDays(new Date(today + 'T12:00:00'));
+
+  const byDate = (date: string) =>
+    reservas.filter(r => r.fecha === date).sort((a, b) => a.hora.localeCompare(b.hora));
+
+  const selectedAppointments = byDate(selected);
+  const selectedDay = weekDays.find(d => d.date === selected) || weekDays[0];
+
+  const getClient  = (id: string) => clientes.find(c => c.id === id);
+  const getSvcName = (id: string) => {
+    const n = servicios.find(s => s.id === id)?.nombre || id;
+    return n.length > 30 ? n.slice(0, 28) + '…' : n;
+  };
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3 flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" style={{ color: '#1D9E75' }} />
+            Agenda semanal
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">Próximos 7 días</p>
+        </div>
+        <Link href="/reservas">
+          <span className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 mt-0.5">
+            Abrir calendario <ChevronRight className="w-3 h-3" />
+          </span>
+        </Link>
+      </CardHeader>
+      <CardContent className="pt-0">
+
+        {/* Day selector strip */}
+        <div className="grid grid-cols-7 gap-1 mb-4">
+          {weekDays.map(d => {
+            const count   = byDate(d.date).length;
+            const isToday = d.date === today;
+            const isSel   = d.date === selected;
+            const hasCitas = count > 0;
+            return (
+              <button
+                key={d.date}
+                onClick={() => setSelected(d.date)}
+                data-testid={`week-day-${d.date}`}
+                className={`flex flex-col items-center py-2 px-1 rounded-xl text-center transition-all border ${
+                  isSel
+                    ? 'text-white border-transparent shadow-md'
+                    : isToday
+                    ? 'border-[#1D9E75]/40 bg-[#1D9E75]/8'
+                    : 'border-transparent hover:bg-muted/60'
+                }`}
+                style={isSel ? { background: '#1D9E75' } : undefined}
+              >
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${
+                  isSel ? 'text-white/80' : isToday ? 'text-[#1D9E75]' : 'text-muted-foreground'
+                }`}>
+                  {d.weekday}
+                </span>
+                <span className={`text-base font-bold leading-none mt-0.5 ${
+                  isSel ? 'text-white' : isToday ? 'text-[#1D9E75]' : 'text-foreground'
+                }`}>
+                  {d.day}
+                </span>
+                <span className={`text-[9px] mt-0.5 ${isSel ? 'text-white/70' : 'text-muted-foreground'}`}>
+                  {d.month}
+                </span>
+                {/* Appointment count dot */}
+                {hasCitas && (
+                  <span className={`mt-1 min-w-[18px] h-[18px] rounded-full text-[9px] font-bold flex items-center justify-center ${
+                    isSel ? 'bg-white/25 text-white' : 'text-white'
+                  }`}
+                  style={!isSel ? { background: '#1D9E75' } : undefined}>
+                    {count}
+                  </span>
+                )}
+                {!hasCitas && <span className="mt-1 h-[18px]" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Appointment list for selected day */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selected}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+          >
+            {selectedAppointments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 rounded-xl bg-muted/20 border border-dashed border-muted-foreground/20">
+                <CalendarCheck className="w-7 h-7 text-muted-foreground/25 mb-1.5" />
+                <p className="text-sm text-muted-foreground">
+                  Sin citas {selectedDay.date === today ? 'hoy' : `el ${selectedDay.weekday} ${selectedDay.day}`}
+                </p>
+                <Link href="/reservas">
+                  <span className="text-xs text-[#1D9E75] hover:underline mt-1">+ Agendar cita</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-0.5">
+                {selectedAppointments.map((r, idx) => {
+                  const c  = getClient(r.clienteId);
+                  const st = STATUS_STYLE[r.estado] || STATUS_STYLE.pendiente;
+                  const initials = c?.nombre.split(' ').map(n => n[0]).slice(0, 2).join('') || '?';
+                  return (
+                    <motion.div
+                      key={r.id}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.04, duration: 0.15 }}
+                    >
+                      <Link href={`/historial/${r.clienteId}`}>
+                        <div
+                          className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:shadow-sm transition-all group"
+                          style={{
+                            background: st.bg,
+                            borderLeft: `3px solid ${st.border}`,
+                            border: `1px solid ${st.border}20`,
+                            borderLeftWidth: '3px',
+                          }}
+                          data-testid={`agenda-row-${r.id}`}
+                        >
+                          {/* Time */}
+                          <div className="text-center shrink-0 w-10">
+                            <p className="text-xs font-bold" style={{ color: st.border }}>{r.hora}</p>
+                          </div>
+
+                          {/* Avatar */}
+                          <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                            style={{ background: st.border }}
+                          >
+                            {initials}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate leading-tight group-hover:underline" style={{ color: st.text }}>
+                              {c?.nombre || '—'}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">{getSvcName(r.servicio)}</p>
+                          </div>
+
+                          {/* Status + price */}
+                          <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${st.pill}`}>
+                              {st.label}
+                            </span>
+                            <span className="text-[11px] font-semibold" style={{ color: st.border }}>
+                              S/ {r.precio}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Day summary footer */}
+        {selectedAppointments.length > 0 && (
+          <div className="mt-3 pt-2.5 border-t flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {selectedAppointments.filter(r => r.estado === 'atendida').length} atendidas ·{' '}
+              {selectedAppointments.filter(r => r.estado === 'pendiente').length} pendientes
+            </span>
+            <span className="font-semibold" style={{ color: '#1D9E75' }}>
+              S/ {selectedAppointments.filter(r => r.estado === 'atendida').reduce((s, r) => s + r.precio, 0)} recaudados
+            </span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main dashboard ───────────────────────────────────────────────────────────
+
 interface Metric {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: React.ElementType;
-  gradient: string;
-  href: string;
+  label: string; value: string | number; sub?: string;
+  icon: React.ElementType; gradient: string; href: string;
 }
 
 export default function Dashboard() {
-  const [clientes, setClientes]   = useState<Cliente[]>([]);
-  const [reservas, setReservas]   = useState<Reserva[]>([]);
+  const [clientes,  setClientes]  = useState<Cliente[]>([]);
+  const [reservas,  setReservas]  = useState<Reserva[]>([]);
   const [servicios, setServicios] = useState<Servicio[]>([]);
 
   useEffect(() => {
@@ -43,7 +238,7 @@ export default function Dashboard() {
     setServicios(store.getServicios());
   }, []);
 
-  const today        = new Date().toISOString().split('T')[0];
+  const today         = new Date().toISOString().split('T')[0];
   const todayReservas = reservas.filter(r => r.fecha === today).sort((a, b) => a.hora.localeCompare(b.hora));
   const attendedToday = todayReservas.filter(r => r.estado === 'atendida');
   const upcomingToday = todayReservas.filter(r => r.estado === 'pendiente');
@@ -53,34 +248,33 @@ export default function Dashboard() {
   const weekData = Array.from({ length: 7 }).map((_, i) => {
     const dt = new Date();
     dt.setDate(dt.getDate() - 6 + i);
-    const dateStr = dt.toISOString().split('T')[0];
-    const income = reservas.filter(r => r.fecha === dateStr && r.estado === 'atendida').reduce((s, r) => s + r.precio, 0);
-    return { name: dt.toLocaleDateString('es-PE', { weekday: 'short' }), income, isToday: dateStr === today };
+    const ds  = dt.toISOString().split('T')[0];
+    const income = reservas.filter(r => r.fecha === ds && r.estado === 'atendida').reduce((s, r) => s + r.precio, 0);
+    return { name: dt.toLocaleDateString('es-PE', { weekday: 'short' }), income, isToday: ds === today };
   });
 
   const recentClientes = [...clientes]
     .sort((a, b) => new Date(b.fechaRegistro).getTime() - new Date(a.fechaRegistro).getTime())
     .slice(0, 5);
 
-  const getServiceName = (id: string) => {
+  const getSvcName = (id: string) => {
     const s = servicios.find(s => s.id === id)?.nombre || id;
     return s.length > 24 ? s.slice(0, 22) + '…' : s;
   };
 
   const metrics: Metric[] = [
-    { label: 'Clientes totales',  value: clientes.length,         sub: 'pacientes registrados',      icon: Users,        gradient: 'metric-blue',   href: '/clientes'  },
-    { label: 'Citas hoy',         value: todayReservas.length,    sub: 'en agenda de hoy',           icon: CalendarClock,gradient: 'metric-teal',   href: '/reservas'  },
-    { label: 'Atendidos hoy',     value: attendedToday.length,    sub: `de ${todayReservas.length} programadas`, icon: CalendarCheck, gradient: 'metric-green',  href: '/reservas'  },
-    { label: 'Ingresos hoy',      value: `S/ ${todayIncome}`,     sub: 'cobrados hoy',               icon: TrendingUp,   gradient: 'metric-amber',  href: '/reportes'  },
-    { label: 'Pacientes VIP',     value: frecuentes.length,       sub: '5+ visitas registradas',     icon: Star,         gradient: 'metric-violet', href: '/frecuentes'},
-    { label: 'Por confirmar',     value: upcomingToday.length,    sub: 'citas pendientes hoy',       icon: Clock,        gradient: 'metric-indigo', href: '/recordatorios'},
+    { label: 'Clientes totales', value: clientes.length,         sub: 'pacientes registrados',               icon: Users,        gradient: 'metric-blue',   href: '/clientes'      },
+    { label: 'Citas hoy',        value: todayReservas.length,    sub: 'en agenda de hoy',                    icon: CalendarClock,gradient: 'metric-teal',   href: '/reservas'      },
+    { label: 'Atendidos hoy',    value: attendedToday.length,    sub: `de ${todayReservas.length} programadas`, icon: CalendarCheck, gradient: 'metric-green',  href: '/reservas'   },
+    { label: 'Ingresos hoy',     value: `S/ ${todayIncome}`,     sub: 'cobrados hoy',                        icon: TrendingUp,   gradient: 'metric-amber',  href: '/reportes'      },
+    { label: 'Pacientes VIP',    value: frecuentes.length,       sub: '5+ visitas registradas',              icon: Star,         gradient: 'metric-violet', href: '/frecuentes'    },
+    { label: 'Por confirmar',    value: upcomingToday.length,    sub: 'citas pendientes hoy',                icon: Clock,        gradient: 'metric-indigo', href: '/recordatorios' },
   ];
-
-  const handleBackup = () => store.exportBackup();
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
+
+      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Panel</h1>
@@ -89,8 +283,8 @@ export default function Dashboard() {
           </p>
         </div>
         <button
-          onClick={handleBackup}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-sm"
+          onClick={() => store.exportBackup()}
+          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-[#1D9E75]/40 transition-all shadow-sm"
           title="Exportar backup completo"
           data-testid="button-dashboard-backup"
         >
@@ -130,30 +324,26 @@ export default function Dashboard() {
       {/* Charts row */}
       <div className="grid gap-4 lg:grid-cols-5">
         {/* Bar chart */}
-        <Card className="lg:col-span-3 shadow-sm">
+        <Card className="lg:col-span-3 shadow-sm border-0">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold">Ingresos de la semana</CardTitle>
             <Link href="/reportes">
-              <span className="text-xs text-primary hover:underline">Ver reporte</span>
+              <span className="text-xs text-muted-foreground hover:text-foreground">Ver reporte</span>
             </Link>
           </CardHeader>
           <CardContent>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weekData} margin={{ left: -10 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D1DCE5" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef0f2" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7b8d' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7b8d' }} tickFormatter={v => `S/${v}`} />
                   <Tooltip
                     formatter={(v: number) => [`S/ ${v}`, 'Ingresos']}
-                    contentStyle={{ borderRadius: 10, border: '1px solid #D1DCE5', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                    cursor={{ fill: 'rgba(44,125,160,0.07)' }}
+                    contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                    cursor={{ fill: 'rgba(29,158,117,0.07)' }}
                   />
-                  <Bar
-                    dataKey="income"
-                    radius={[5, 5, 0, 0]}
-                    fill="#2C7DA0"
-                  />
+                  <Bar dataKey="income" radius={[5, 5, 0, 0]} fill="#1D9E75" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -161,12 +351,12 @@ export default function Dashboard() {
         </Card>
 
         {/* Today's appointments */}
-        <Card className="lg:col-span-2 shadow-sm">
+        <Card className="lg:col-span-2 shadow-sm border-0">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold">Citas de Hoy</CardTitle>
               <Link href="/reservas">
-                <span className="text-xs text-primary hover:underline">Ver todas</span>
+                <span className="text-xs text-muted-foreground hover:text-foreground">Ver todas</span>
               </Link>
             </div>
           </CardHeader>
@@ -177,67 +367,71 @@ export default function Dashboard() {
                   <CalendarCheck className="w-8 h-8 text-muted-foreground/30 mb-2" />
                   <p className="text-sm text-muted-foreground">Sin citas para hoy</p>
                 </div>
-              ) : (
-                todayReservas.map(reserva => {
-                  const cliente = clientes.find(c => c.id === reserva.clienteId);
-                  return (
-                    <div
-                      key={reserva.id}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors"
-                      data-testid={`row-cita-${reserva.id}`}
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold text-primary">
-                          {cliente?.nombre.split(' ').map(n => n[0]).slice(0, 2).join('') || '?'}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate leading-tight">{cliente?.nombre || '—'}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{getServiceName(reserva.servicio)}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs font-bold text-primary">{reserva.hora}</p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${stateStyle[reserva.estado]}`}>
-                          {stateColors[reserva.estado]?.label || reserva.estado}
-                        </span>
-                      </div>
+              ) : todayReservas.map(r => {
+                const c  = clientes.find(cl => cl.id === r.clienteId);
+                const st = STATUS_STYLE[r.estado] || STATUS_STYLE.pendiente;
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors"
+                    data-testid={`row-cita-${r.id}`}
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white text-[10px] font-bold"
+                      style={{ background: st.border }}>
+                      {c?.nombre.split(' ').map(n => n[0]).slice(0, 2).join('') || '?'}
                     </div>
-                  );
-                })
-              )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate leading-tight">{c?.nombre || '—'}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{getSvcName(r.servicio)}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-bold" style={{ color: st.border }}>{r.hora}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${st.pill}`}>{st.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* ── WEEKLY AGENDA ──────────────────────────────────────────────────── */}
+      <WeekAgenda
+        reservas={reservas}
+        clientes={clientes}
+        servicios={servicios}
+        today={today}
+      />
 
       {/* Recent patients */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-foreground">Últimos pacientes registrados</h2>
           <Link href="/clientes">
-            <span className="text-xs text-primary hover:underline flex items-center gap-0.5">
+            <span className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5">
               Ver todos <ChevronRight className="w-3 h-3" />
             </span>
           </Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {recentClientes.map((c, i) => {
-            const visits = reservas.filter(r => r.clienteId === c.id && r.estado === 'atendida').length;
-            const colorMap = ['#2C7DA0','#52B788','#7c3aed','#f59e0b','#0d9488'];
+            const visits  = reservas.filter(r => r.clienteId === c.id && r.estado === 'atendida').length;
+            const colorMap = ['#1D9E75','#0F6E56','#534AB7','#BA7517','#185FA5'];
             const bg = colorMap[i % colorMap.length];
             return (
               <Link key={c.id} href={`/historial/${c.id}`}>
                 <div
-                  className="p-4 rounded-2xl bg-card border hover:shadow-md transition-all cursor-pointer hover:-translate-y-0.5 group"
+                  className="p-4 rounded-2xl bg-card border-0 shadow-sm hover:shadow-md transition-all cursor-pointer hover:-translate-y-0.5 group"
                   data-testid={`card-cliente-${c.id}`}
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold mb-3 shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${bg}, ${bg}bb)` }}
+                    style={{ background: bg }}
                   >
                     {c.nombre.split(' ').map(n => n[0]).slice(0, 2).join('')}
                   </div>
-                  <p className="text-sm font-semibold truncate leading-tight group-hover:text-primary transition-colors">{c.nombre}</p>
+                  <p className="text-sm font-semibold truncate leading-tight group-hover:text-[#1D9E75] transition-colors">{c.nombre}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">DNI: {c.dni}</p>
                   <div className="mt-2 flex items-center gap-1">
                     <div className="h-1 rounded-full flex-1 bg-muted overflow-hidden">
@@ -253,13 +447,15 @@ export default function Dashboard() {
       </div>
 
       {/* Storage notice */}
-      <div className="flex items-center gap-3 p-3.5 rounded-xl border bg-[#52B788]/8 border-[#52B788]/20 text-xs text-[#2d7a52]">
-        <div className="w-6 h-6 rounded-lg bg-[#52B788]/20 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-3 p-3.5 rounded-xl border bg-[#1D9E75]/6 border-[#1D9E75]/15 text-xs text-[#0a5c3d]">
+        <div className="w-6 h-6 rounded-lg bg-[#1D9E75]/15 flex items-center justify-center shrink-0">
           <span className="text-sm">💾</span>
         </div>
         <p>
-          <strong>Datos guardados automáticamente</strong> en tu navegador (localStorage). 
-          Persisten aunque cierres o apagues la computadora. Usa <strong>Backup JSON</strong> o ve a <strong>Configuración</strong> para exportar/restaurar tus datos.
+          <strong>Datos guardados automáticamente</strong> en tu navegador (localStorage).
+          Persisten aunque cierres o apagues la computadora. Usa <strong>Backup JSON</strong> o ve a{' '}
+          <Link href="/configuracion"><strong className="hover:underline cursor-pointer">Configuración</strong></Link>{' '}
+          para exportar/restaurar tus datos.
         </p>
       </div>
     </div>
