@@ -17,25 +17,25 @@ const navGroups = [
   {
     label: "Principal",
     items: [
-      { href: "/",              label: "Dashboard",     icon: LayoutDashboard, color: "#ADE8F4" },
-      { href: "/clientes",      label: "Clientes",      icon: Users,           color: "#52B788" },
-      { href: "/reservas",      label: "Reservas",      icon: Calendar,        color: "#4FC3F7" },
-      { href: "/recordatorios", label: "Recordatorios", icon: MessageCircle,   color: "#25D366" },
+      { href: "/",              label: "Panel",         icon: LayoutDashboard, color: "#5DCAA5" },
+      { href: "/clientes",      label: "Clientes",      icon: Users,           color: "#5DCAA5" },
+      { href: "/reservas",      label: "Reservas",      icon: Calendar,        color: "#5DCAA5" },
+      { href: "/recordatorios", label: "Recordatorios", icon: MessageCircle,   color: "#5DCAA5" },
     ],
   },
   {
     label: "Análisis",
     items: [
-      { href: "/buscar",        label: "Buscar DNI",    icon: Search,          color: "#ADE8F4" },
-      { href: "/frecuentes",    label: "Frecuentes",    icon: Star,            color: "#FCD34D" },
-      { href: "/reportes",      label: "Reportes",      icon: TrendingUp,      color: "#86EFAC" },
+      { href: "/buscar",        label: "Buscar DNI",    icon: Search,          color: "#5DCAA5" },
+      { href: "/frecuentes",    label: "Frecuentes",    icon: Star,            color: "#5DCAA5" },
+      { href: "/reportes",      label: "Reportes",      icon: TrendingUp,      color: "#5DCAA5" },
     ],
   },
   {
     label: "Sistema",
     items: [
-      { href: "/precios",       label: "Precios",       icon: Settings,        color: "#C4B5FD" },
-      { href: "/configuracion", label: "Configuración", icon: Cog,             color: "#FDA4AF" },
+      { href: "/precios",       label: "Precios",       icon: Settings,        color: "#5DCAA5" },
+      { href: "/configuracion", label: "Configuración", icon: Cog,             color: "#5DCAA5" },
     ],
   },
 ];
@@ -71,11 +71,11 @@ function StatusBar() {
 
   return (
     <div className="px-4 py-2 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-1.5 text-[11px] text-white/50">
+      <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#6a9980' }}>
         <Clock className="w-3 h-3 shrink-0" />
         <span>{label}</span>
       </div>
-      <div className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${online ? 'bg-[#52B788]/20 text-[#52B788]' : 'bg-red-500/20 text-red-400'}`}>
+      <div className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${online ? 'bg-[#1D9E75]/20 text-[#5DCAA5]' : 'bg-red-500/20 text-red-400'}`}>
         {online
           ? <><Wifi className="w-2.5 h-2.5" /> Online</>
           : <><WifiOff className="w-2.5 h-2.5" /> Offline</>
@@ -92,7 +92,10 @@ function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () 
     <nav className="flex-1 py-4 overflow-y-auto">
       {navGroups.map(group => (
         <div key={group.label} className="mb-4">
-          <p className="px-4 mb-1 text-[10px] uppercase tracking-widest font-semibold text-white/30">
+          <p
+            className="px-4 mb-1 text-[10px] uppercase tracking-widest font-semibold"
+            style={{ color: '#4a7060' }}
+          >
             {group.label}
           </p>
           {group.items.map(item => {
@@ -106,20 +109,23 @@ function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () 
                 data-testid={`nav-${item.href.replace("/", "") || "dashboard"}`}
                 className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-xl transition-all text-sm mb-0.5 group ${
                   isActive
-                    ? 'bg-white/15 text-white font-semibold shadow-sm'
-                    : 'text-white/60 hover:bg-white/8 hover:text-white/90'
+                    ? 'font-semibold text-[#5DCAA5]'
+                    : 'hover:bg-[#1D9E75]/10 hover:text-[#5DCAA5]'
                 }`}
-                style={isActive ? { boxShadow: `0 0 0 1px ${item.color}30` } : undefined}
+                style={{
+                  color: isActive ? '#5DCAA5' : '#8abfaa',
+                  ...(isActive ? { background: 'rgba(29,158,117,0.25)', boxShadow: '0 0 0 1px rgba(93,202,165,0.25)' } : {}),
+                }}
               >
                 <span
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all ${isActive ? 'shadow-md' : 'group-hover:scale-110'}`}
-                  style={{ background: isActive ? item.color + '30' : 'rgba(255,255,255,0.06)' }}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all ${!isActive ? 'group-hover:scale-110' : ''}`}
+                  style={{ background: isActive ? 'rgba(29,158,117,0.35)' : 'rgba(255,255,255,0.05)' }}
                 >
-                  <Icon className="w-3.5 h-3.5" style={{ color: isActive ? item.color : 'rgba(255,255,255,0.5)' }} />
+                  <Icon className="w-3.5 h-3.5" style={{ color: isActive ? '#5DCAA5' : '#6a9980' }} />
                 </span>
                 <span>{item.label}</span>
                 {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.color }} />
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#5DCAA5' }} />
                 )}
               </Link>
             );
@@ -132,19 +138,18 @@ function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () 
 
 // ─── Sidebar footer ───────────────────────────────────────────────────────────
 
-function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
-  const handleExport = () => {
-    store.exportBackup();
-  };
+function SidebarFooter({ onNavigate: _onNavigate }: { onNavigate?: () => void }) {
+  const handleExport = () => { store.exportBackup(); };
 
   return (
-    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+    <div style={{ borderTop: '1px solid rgba(93,202,165,0.12)' }}>
       <StatusBar />
       {/* Quick backup */}
       <div className="px-3 pb-2">
         <button
           onClick={handleExport}
-          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/50 hover:text-white/80 hover:bg-white/8 rounded-xl transition-all"
+          className="flex w-full items-center gap-2 px-3 py-2 text-xs rounded-xl transition-all hover:bg-[#1D9E75]/10"
+          style={{ color: '#6a9980' }}
           title="Exportar backup JSON"
           data-testid="button-quick-backup"
         >
@@ -153,18 +158,24 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
         </button>
       </div>
       {/* User */}
-      <div className="flex items-center gap-3 px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
-          style={{ background: 'linear-gradient(135deg, #52B788, #2C7DA0)', color: 'white' }}>
+      <div
+        className="flex items-center gap-3 px-4 py-3"
+        style={{ borderTop: '1px solid rgba(93,202,165,0.10)' }}
+      >
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
+          style={{ background: '#1D9E75', color: 'white' }}
+        >
           DG
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white truncate">Dr. García</p>
-          <p className="text-xs text-white/40">Podólogo</p>
+          <p className="text-xs" style={{ color: '#6a9980' }}>Podólogo</p>
         </div>
         <button
           data-testid="button-logout"
-          className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          className="p-1.5 rounded-lg hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          style={{ color: '#4a7060' }}
           title="Salir"
         >
           <LogOut className="w-4 h-4" />
@@ -178,8 +189,8 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const [mobileOpen,   setMobileOpen]   = useState(false);
-  const [paletteOpen,  setPaletteOpen]  = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -200,14 +211,16 @@ export function Layout({ children }: { children: ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-[240px] flex-col h-screen fixed top-0 left-0 z-40 sidebar-dark">
         {/* Logo */}
-        <div className="p-4 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shrink-0"
-            style={{ background: 'linear-gradient(135deg, #2C7DA0, #52B788)' }}>
+        <div className="p-4 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(93,202,165,0.12)' }}>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shrink-0"
+            style={{ background: '#1D9E75' }}
+          >
             <Activity className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white tracking-tight leading-none">PodoClinic</h1>
-            <p className="text-[10px] text-white/40 mt-0.5">Sistema de Gestión</p>
+            <h1 className="text-base font-bold text-white tracking-tight leading-none">PodoSalud</h1>
+            <p className="text-[10px] mt-0.5" style={{ color: '#6a9980' }}>Sistema de Gestión</p>
           </div>
         </div>
 
@@ -216,12 +229,18 @@ export function Layout({ children }: { children: ReactNode }) {
           <button
             onClick={() => setPaletteOpen(true)}
             data-testid="button-command-palette"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-white/50 hover:text-white/80 hover:bg-white/8 transition-all text-xs group"
-            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-xs group hover:bg-[#1D9E75]/10"
+            style={{
+              color: '#6a9980',
+              border: '1px solid rgba(93,202,165,0.15)',
+            }}
           >
-            <Search className="w-3.5 h-3.5 shrink-0 group-hover:text-[#52B788] transition-colors" />
+            <Search className="w-3.5 h-3.5 shrink-0 group-hover:text-[#5DCAA5] transition-colors" />
             <span className="flex-1 text-left">Buscar...</span>
-            <kbd className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <kbd
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium"
+              style={{ background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(93,202,165,0.2)', color: '#6a9980' }}
+            >
               <Command className="w-2.5 h-2.5" />K
             </kbd>
           </button>
@@ -240,13 +259,15 @@ export function Layout({ children }: { children: ReactNode }) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-[260px] flex flex-col border-0 sidebar-dark">
-            <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(93,202,165,0.12)' }}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #2C7DA0, #52B788)' }}>
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  style={{ background: '#1D9E75' }}
+                >
                   <Activity className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-base font-bold text-white">PodoClinic</h1>
+                <h1 className="text-base font-bold text-white">PodoSalud</h1>
               </div>
               <Button variant="ghost" size="icon" className="text-white/60 hover:bg-white/10" onClick={() => setMobileOpen(false)}>
                 <X className="w-4 h-4" />
@@ -257,11 +278,13 @@ export function Layout({ children }: { children: ReactNode }) {
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #2C7DA0, #52B788)' }}>
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: '#1D9E75' }}
+          >
             <Activity className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-white">PodoClinic</span>
+          <span className="font-bold text-white">PodoSalud</span>
         </div>
       </header>
 

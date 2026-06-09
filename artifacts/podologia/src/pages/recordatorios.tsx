@@ -35,7 +35,7 @@ function formatDateLong(dateStr: string): string {
 function buildWhatsAppMessage(
   clienteName: string, fecha: string, hora: string, servicio: string
 ): string {
-  return `Hola ${clienteName.split(' ')[0]} 👋, le recordamos su cita en *PodoClinic* para el día *${formatDateLong(fecha)}* a las *${hora} hrs*.
+  return `Hola ${clienteName.split(' ')[0]} 👋, le recordamos su cita en *PodoSalud* para el día *${formatDateLong(fecha)}* a las *${hora} hrs*.
 
 🦶 Servicio: ${servicio}
 📍 Por favor llegar 5 minutos antes.

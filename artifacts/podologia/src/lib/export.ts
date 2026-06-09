@@ -36,7 +36,7 @@ function addHeader(doc: jsPDF, title: string, subtitle?: string) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('PodoClinic', 14, 10);
+  doc.text('PodoSalud', 14, 10);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(title, 14, 17);

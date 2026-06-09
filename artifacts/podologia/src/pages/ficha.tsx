@@ -82,7 +82,7 @@ function exportFichaPDF(cliente: Cliente, historial: Reserva[], servicios: Servi
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('PodoClinic', 14, 11);
+  doc.text('PodoSalud', 14, 11);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Sistema de Gestión Podológica', 14, 18);
@@ -211,7 +211,7 @@ function exportFichaPDF(cliente: Cliente, historial: Reserva[], servicios: Servi
     doc.setFontSize(7);
     doc.setTextColor(150);
     doc.text(
-      `PodoClinic — Ficha clínica de ${cliente.nombre} — Pág. ${i}/${pageCount}`,
+      `PodoSalud — Ficha clínica de ${cliente.nombre} — Pág. ${i}/${pageCount}`,
       105, 290, { align: 'center' }
     );
   }
@@ -298,7 +298,7 @@ export default function Ficha() {
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white leading-tight">PodoClinic</h1>
+              <h1 className="text-xl font-bold text-white leading-tight">PodoSalud</h1>
               <p className="text-white/60 text-xs">Sistema de Gestión Podológica</p>
             </div>
           </div>
@@ -430,7 +430,7 @@ export default function Ficha() {
 
         {/* Document footer */}
         <div className="px-8 py-3 flex items-center justify-between" style={{ background: '#f8fbff', borderTop: '1px solid #e0ecf5' }}>
-          <p className="text-[10px] text-gray-400">PodoClinic · Sistema de Gestión Podológica</p>
+          <p className="text-[10px] text-gray-400">PodoSalud · Sistema de Gestión Podológica</p>
           <p className="text-[10px] text-gray-400">DNI: {cliente.dni} · {new Date().getFullYear()}</p>
         </div>
       </div>

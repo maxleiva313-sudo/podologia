@@ -144,7 +144,7 @@ export default function Configuracion() {
       {/* Info */}
       <div className="text-xs text-muted-foreground p-4 bg-muted/30 rounded-lg">
         <p className="font-medium mb-1">Sobre el almacenamiento</p>
-        <p>PodoClinic guarda todos los datos localmente en tu navegador (localStorage). Los datos persisten entre sesiones en el mismo dispositivo y navegador. Para transferir datos entre dispositivos, usa la función de backup/restaurar.</p>
+        <p>PodoSalud guarda todos los datos localmente en tu navegador (localStorage). Los datos persisten entre sesiones en el mismo dispositivo y navegador. Para transferir datos entre dispositivos, usa la función de backup/restaurar.</p>
       </div>
 
       <AlertDialog open={resetDialog} onOpenChange={setResetDialog}>
