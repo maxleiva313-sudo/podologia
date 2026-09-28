@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Phone, X, ChevronLeft, ChevronRight, LayoutList, CalendarDays } from "lucide-react";
+import { Plus, Search, Phone, X, ChevronLeft, ChevronRight, LayoutList, CalendarDays, Stethoscope, UserPlus } from "lucide-react";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -83,6 +83,15 @@ const emptyForm = () => ({
   observaciones: '',
   evolucion: '',
   estado: 'pendiente' as Reserva['estado'],
+});
+
+type NewFlow = 'cita' | 'atencion';
+
+const emptyNewClient = () => ({
+  nombre: '',
+  dni: '',
+  telefono: '',
+  direccion: '',
 });
 
 // ─── Calendar View ────────────────────────────────────────────────────────────
@@ -267,6 +276,9 @@ export default function Reservas() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [form, setForm]             = useState(emptyForm());
+  const [newFlow, setNewFlow]       = useState<NewFlow>('cita');
+  const [newPatientMode, setNewPatientMode] = useState(false);
+  const [newClient, setNewClient]   = useState(emptyNewClient());
 
   // Client autocomplete
   const [clientSearch, setClientSearch]   = useState('');
@@ -315,10 +327,18 @@ export default function Reservas() {
     setForm(f => ({ ...f, servicio: id, precio: s ? s.precio : 0 }));
   };
 
-  const openNew = (fecha?: string, hora?: string) => {
-    setForm({ ...emptyForm(), fecha: fecha ?? new Date().toISOString().split('T')[0], hora: hora ?? '09:00' });
+  const openNew = (fecha?: string, hora?: string, flow: NewFlow = 'cita') => {
+    setForm({
+      ...emptyForm(),
+      fecha: fecha ?? new Date().toISOString().split('T')[0],
+      hora: hora ?? '09:00',
+      estado: flow === 'atencion' ? 'atendida' : 'pendiente',
+    });
     setClientSearch('');
     setEditingId(null);
+    setNewFlow(flow);
+    setNewPatientMode(false);
+    setNewClient(emptyNewClient());
     setDialogOpen(true);
   };
 
@@ -337,36 +357,84 @@ export default function Reservas() {
     });
     setClientSearch(c?.nombre || '');
     setEditingId(r.id);
+    setNewFlow('cita');
+    setNewPatientMode(false);
+    setNewClient(emptyNewClient());
     setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.clienteId || !form.servicio) {
-      toast({ title: "Campos requeridos", description: "Selecciona paciente y servicio.", variant: "destructive" });
+    if ((!form.clienteId && !newPatientMode) || !form.servicio) {
+      toast({ title: "Campos requeridos", description: "Selecciona o registra un paciente y elige un servicio.", variant: "destructive" });
       return;
     }
+
+    let clienteId = form.clienteId;
+    let clienteNombre = form.clienteNombre;
+    let createdNewPatient = false;
+
+    if (newPatientMode) {
+      const normalizedDni = newClient.dni.replace(/\D/g, '');
+      const normalizedPhone = newClient.telefono.replace(/\D/g, '');
+      const normalizedName = newClient.nombre.trim().replace(/\s+/g, ' ');
+
+      if (!normalizedName || !/^\d{8}$/.test(normalizedDni) || !/^\d{9}$/.test(normalizedPhone)) {
+        toast({
+          title: "Datos del paciente incompletos",
+          description: "Ingresa nombre, DNI de 8 dígitos y teléfono de 9 dígitos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const existing = clientes.find(c => c.dni === normalizedDni);
+      if (existing) {
+        clienteId = existing.id;
+        clienteNombre = existing.nombre;
+      } else {
+        const nuevoCliente: Cliente = {
+          id: `c${Date.now()}`,
+          nombre: normalizedName,
+          dni: normalizedDni,
+          telefono: normalizedPhone,
+          direccion: newClient.direccion.trim().replace(/\s+/g, ' '),
+          fechaRegistro: new Date().toISOString(),
+        };
+        const updatedClientes = [...clientes, nuevoCliente];
+        store.setClientes(updatedClientes);
+        setClientes(updatedClientes);
+        clienteId = nuevoCliente.id;
+        clienteNombre = nuevoCliente.nombre;
+        createdNewPatient = true;
+      }
+    }
+
     let updated: Reserva[];
     if (editingId) {
       updated = reservas.map(r => r.id === editingId
-        ? { ...r, clienteId: form.clienteId, fecha: form.fecha, hora: form.hora, servicio: form.servicio, precio: form.precio, observaciones: form.observaciones, evolucion: form.evolucion, estado: form.estado }
+        ? { ...r, clienteId, fecha: form.fecha, hora: form.hora, servicio: form.servicio, precio: form.precio, observaciones: form.observaciones, evolucion: form.evolucion, estado: form.estado }
         : r
       );
       toast({ title: "Cita actualizada" });
     } else {
       const nueva: Reserva = {
         id: `r${Date.now()}`,
-        clienteId: form.clienteId,
+        clienteId,
         fecha: form.fecha, hora: form.hora, servicio: form.servicio,
         precio: form.precio, observaciones: form.observaciones,
         evolucion: form.evolucion, estado: form.estado,
       };
       updated = [...reservas, nueva];
-      toast({ title: "Cita registrada", description: `${form.clienteNombre} — ${form.fecha} ${form.hora}` });
+      toast({
+        title: newFlow === 'atencion' ? "Atención registrada" : "Cita registrada",
+        description: `${createdNewPatient ? 'Paciente y atención guardados' : clienteNombre} — ${form.fecha} ${form.hora}`,
+      });
     }
     store.setReservas(updated);
     setReservas(updated);
     setDialogOpen(false);
+    setNewPatientMode(false);
   };
 
   const updateEstado = (id: string, estado: Reserva['estado']) => {
@@ -434,9 +502,14 @@ export default function Reservas() {
             </button>
           </div>
 
-          <Button size="sm" onClick={() => openNew()} data-testid="button-nueva-cita">
-            <Plus className="w-4 h-4 mr-1.5" /> Nueva Cita
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => openNew(undefined, undefined, 'atencion')} data-testid="button-nueva-atencion">
+              <Stethoscope className="w-4 h-4 mr-1.5" /> Nueva Atención
+            </Button>
+            <Button size="sm" onClick={() => openNew()} data-testid="button-nueva-cita">
+              <Plus className="w-4 h-4 mr-1.5" /> Nueva Cita
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -599,44 +672,102 @@ export default function Reservas() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base">{editingId ? 'Editar Cita' : 'Nueva Cita'}</DialogTitle>
+            <DialogTitle className="text-base">
+              {editingId ? 'Editar Cita' : newFlow === 'atencion' ? 'Nueva Atención' : 'Nueva Cita'}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
 
             {/* Client search */}
-            <div className="space-y-1.5" ref={dropdownRef}>
-              <Label className="text-sm">Paciente <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="Buscar por nombre o DNI..."
-                  value={clientSearch}
-                  onChange={e => { setClientSearch(e.target.value); setShowDropdown(true); setForm(f => ({ ...f, clienteId: '', clienteNombre: '' })); }}
-                  onFocus={() => setShowDropdown(true)}
-                  autoComplete="off"
-                  data-testid="input-buscar-paciente"
-                />
-                {showDropdown && clienteSuggestions.length > 0 && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-lg overflow-hidden">
-                    {clienteSuggestions.map(c => (
-                      <button key={c.id} type="button" onClick={() => selectCliente(c)}
-                        className="w-full text-left px-3 py-2.5 hover:bg-muted transition-colors text-sm"
-                        data-testid={`option-cliente-${c.id}`}>
-                        <span className="font-medium">{c.nombre}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">DNI: {c.dni}</span>
-                      </button>
-                    ))}
-                  </div>
+            {!newPatientMode ? (
+              <div className="space-y-1.5" ref={dropdownRef}>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-sm">Paciente <span className="text-destructive">*</span></Label>
+                  {!editingId && (
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => {
+                      setNewPatientMode(true);
+                      setForm(f => ({ ...f, clienteId: '', clienteNombre: '' }));
+                      setClientSearch('');
+                      setShowDropdown(false);
+                    }} data-testid="button-registrar-paciente-aqui">
+                      <UserPlus className="w-3.5 h-3.5 mr-1" /> Registrar paciente nuevo
+                    </Button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Buscar por nombre o DNI..."
+                    value={clientSearch}
+                    onChange={e => { setClientSearch(e.target.value); setShowDropdown(true); setForm(f => ({ ...f, clienteId: '', clienteNombre: '' })); }}
+                    onFocus={() => setShowDropdown(true)}
+                    autoComplete="off"
+                    data-testid="input-buscar-paciente"
+                  />
+                  {showDropdown && clienteSuggestions.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-lg overflow-hidden">
+                      {clienteSuggestions.map(c => (
+                        <button key={c.id} type="button" onClick={() => selectCliente(c)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-muted transition-colors text-sm"
+                          data-testid={`option-cliente-${c.id}`}>
+                          <span className="font-medium">{c.nombre}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">DNI: {c.dni}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {form.clienteId && (
+                  <p className="text-xs text-[#52B788] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#52B788] inline-block" />
+                    {form.clienteNombre}
+                  </p>
                 )}
               </div>
-              {form.clienteId && (
-                <p className="text-xs text-[#52B788] flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#52B788] inline-block" />
-                  {form.clienteNombre}
-                </p>
-              )}
-            </div>
+            ) : (
+              <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/[0.03] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-sm">Registrar paciente nuevo</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">La atención se guardará en su historial automáticamente.</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
+                    setNewPatientMode(false);
+                    setNewClient(emptyNewClient());
+                  }} data-testid="button-usar-paciente-registrado">
+                    Usar paciente registrado
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="nuevo-nombre-atencion" className="text-sm">Nombre completo <span className="text-destructive">*</span></Label>
+                    <Input id="nuevo-nombre-atencion" value={newClient.nombre}
+                      onChange={e => setNewClient(c => ({ ...c, nombre: e.target.value }))}
+                      placeholder="Nombre y apellidos" data-testid="input-nuevo-nombre-atencion" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nuevo-dni-atencion" className="text-sm">DNI <span className="text-destructive">*</span></Label>
+                    <Input id="nuevo-dni-atencion" value={newClient.dni}
+                      onChange={e => setNewClient(c => ({ ...c, dni: e.target.value.replace(/\D/g, '').slice(0, 8) }))}
+                      placeholder="12345678" maxLength={8} data-testid="input-nuevo-dni-atencion" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nuevo-telefono-atencion" className="text-sm">Teléfono <span className="text-destructive">*</span></Label>
+                    <Input id="nuevo-telefono-atencion" value={newClient.telefono}
+                      onChange={e => setNewClient(c => ({ ...c, telefono: e.target.value.replace(/\D/g, '').slice(0, 9) }))}
+                      placeholder="987654321" maxLength={9} data-testid="input-nuevo-telefono-atencion" />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="nuevo-direccion-atencion" className="text-sm">Dirección <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                    <Input id="nuevo-direccion-atencion" value={newClient.direccion}
+                      onChange={e => setNewClient(c => ({ ...c, direccion: e.target.value }))}
+                      placeholder="Av. Arequipa 123, Lima" data-testid="input-nueva-direccion-atencion" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Si el DNI ya está registrado, se usará el paciente existente y no se creará un duplicado.</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -717,7 +848,7 @@ export default function Reservas() {
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button type="submit" data-testid="button-guardar-cita">
-                {editingId ? 'Guardar cambios' : 'Registrar cita'}
+                {editingId ? 'Guardar cambios' : newFlow === 'atencion' ? 'Registrar atención' : 'Registrar cita'}
               </Button>
             </DialogFooter>
           </form>
