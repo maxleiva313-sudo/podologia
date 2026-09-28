@@ -39,6 +39,29 @@ export interface Servicio {
   precio: number;
 }
 
+export interface ProfesionalPerfil {
+  nombre: string;
+  especialidad: string;
+}
+
+const DEFAULT_PROFESIONAL: ProfesionalPerfil = {
+  nombre: 'Dr. García',
+  especialidad: 'Podólogo',
+};
+
+function normalizeProfessionalValue(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  return normalized || fallback;
+}
+
+function normalizeProfessionalProfile(value: Partial<ProfesionalPerfil> | null | undefined): ProfesionalPerfil {
+  return {
+    nombre: normalizeProfessionalValue(value?.nombre, DEFAULT_PROFESIONAL.nombre),
+    especialidad: normalizeProfessionalValue(value?.especialidad, DEFAULT_PROFESIONAL.especialidad),
+  };
+}
+
 const defaultServicios: Servicio[] = [
   { id: 's1', nombre: 'Consulta podológica general', descripcion: 'Evaluación inicial del estado podológico', precio: 50 },
   { id: 's2', nombre: 'Tratamiento de hongos', descripcion: 'Onicomicosis y tiña pedis', precio: 80 },
@@ -130,6 +153,22 @@ export const store = {
     store.updateLastSaved();
   },
 
+  getProfesional: (): ProfesionalPerfil => {
+    try {
+      const stored = localStorage.getItem('podo_profesional');
+      return normalizeProfessionalProfile(stored ? JSON.parse(stored) : null);
+    } catch {
+      return DEFAULT_PROFESIONAL;
+    }
+  },
+  setProfesional: (data: Partial<ProfesionalPerfil>): ProfesionalPerfil => {
+    const profile = normalizeProfessionalProfile({ ...store.getProfesional(), ...data });
+    localStorage.setItem('podo_profesional', JSON.stringify(profile));
+    store.updateLastSaved();
+    window.dispatchEvent(new CustomEvent('podo:professional-updated'));
+    return profile;
+  },
+
   getLastSaved: (): string | null => localStorage.getItem('podo_last_saved'),
   updateLastSaved: () => localStorage.setItem('podo_last_saved', new Date().toISOString()),
 
@@ -160,11 +199,12 @@ export const store = {
 
   exportBackup: () => {
     const backup = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       clientes: store.getClientes(),
       reservas: store.getReservas(),
       servicios: store.getServicios(),
+      profesional: store.getProfesional(),
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -182,6 +222,9 @@ export const store = {
       store.setClientes(data.clientes);
       store.setReservas(data.reservas);
       store.setServicios(data.servicios);
+      if (data.profesional?.nombre) {
+        store.setProfesional(data.profesional);
+      }
       return true;
     } catch {
       return false;

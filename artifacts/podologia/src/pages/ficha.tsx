@@ -73,6 +73,7 @@ const PRINT_STYLE = `
 
 function exportFichaPDF(cliente: Cliente, historial: Reserva[], servicios: Servicio[]) {
   const doc = new jsPDF();
+  const profesional = store.getProfesional();
   const PRIMARY: [number,number,number] = [44, 125, 160];
   const GREEN:   [number,number,number] = [82, 183, 136];
 
@@ -122,6 +123,8 @@ function exportFichaPDF(cliente: Cliente, historial: Reserva[], servicios: Servi
   doc.setFont('helvetica', 'normal');
   const addrLines = doc.splitTextToSize(cliente.direccion || '—', 85);
   doc.text(addrLines, 130, y + 15);
+  doc.setFont('helvetica', 'bold'); doc.text('Profesional:', 110, y + 29);
+  doc.setFont('helvetica', 'normal'); doc.text(profesional.nombre, 130, y + 29);
 
   y += 48;
 
@@ -262,6 +265,7 @@ export default function Ficha() {
   const lastVisit  = sorted[sorted.length - 1]?.fecha;
   const getService = (id: string) => servicios.find(s => s.id === id)?.nombre || id;
   const initials   = cliente.nombre.split(' ').map(n => n[0]).slice(0, 2).join('');
+  const profesional = store.getProfesional();
 
   const handlePrint = () => window.print();
   const handlePDF   = () => {
@@ -418,7 +422,7 @@ export default function Ficha() {
             <div className="text-center">
               <div className="h-12 border-b-2 border-gray-300 mb-2" />
               <p className="text-xs text-gray-500">Firma del profesional</p>
-              <p className="text-xs font-medium text-gray-700 mt-0.5">Dr. García — Podólogo</p>
+              <p className="text-xs font-medium text-gray-700 mt-0.5">{profesional.nombre} — {profesional.especialidad}</p>
             </div>
             <div className="text-center">
               <div className="h-12 border-b-2 border-gray-300 mb-2" />

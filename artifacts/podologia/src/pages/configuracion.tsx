@@ -2,14 +2,16 @@ import { useRef, useState } from "react";
 import { store } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Upload, AlertTriangle, RotateCcw, Database, Shield } from "lucide-react";
+import { Download, Upload, AlertTriangle, RotateCcw, Database, Shield, Save, UserRound } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Configuracion() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resetDialog, setResetDialog] = useState(false);
+  const [nombreProfesional, setNombreProfesional] = useState(() => store.getProfesional().nombre);
 
   const handleExportBackup = () => {
     store.exportBackup();
@@ -39,6 +41,13 @@ export default function Configuracion() {
     store.reset();
   };
 
+  const handleSaveProfessional = (e: React.FormEvent) => {
+    e.preventDefault();
+    const profile = store.setProfesional({ nombre: nombreProfesional });
+    setNombreProfesional(profile.nombre);
+    toast({ title: "Perfil actualizado", description: "El nombre se usará en el menú y en las fichas clínicas." });
+  };
+
   const clientes = store.getClientes();
   const reservas = store.getReservas();
   const servicios = store.getServicios();
@@ -50,6 +59,37 @@ export default function Configuracion() {
         <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
         <p className="text-sm text-muted-foreground">Gestión de datos y respaldos del sistema.</p>
       </div>
+
+      {/* Professional profile */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <UserRound className="w-4 h-4 text-primary" /> Perfil del profesional
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveProfessional} className="space-y-3">
+            <div className="space-y-1.5">
+              <label htmlFor="nombre-profesional" className="text-sm font-medium">
+                Nombre que aparecerá en el sistema
+              </label>
+              <Input
+                id="nombre-profesional"
+                value={nombreProfesional}
+                onChange={(e) => setNombreProfesional(e.target.value)}
+                placeholder="Ej. Dr. Juan Pérez"
+                maxLength={80}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se eliminan espacios adicionales al guardar. La especialidad seguirá como “Podólogo”.
+              </p>
+            </div>
+            <Button type="submit" size="sm" className="gap-1.5" disabled={!nombreProfesional.trim()}>
+              <Save className="w-4 h-4" /> Guardar nombre
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Storage Info */}
       <Card>

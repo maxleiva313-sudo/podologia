@@ -140,6 +140,22 @@ function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () 
 
 function SidebarFooter({ onNavigate: _onNavigate }: { onNavigate?: () => void }) {
   const handleExport = () => { store.exportBackup(); };
+  const [profile, setProfile] = useState(() => store.getProfesional());
+
+  useEffect(() => {
+    const handleProfileUpdated = () => setProfile(store.getProfesional());
+    window.addEventListener('podo:professional-updated', handleProfileUpdated);
+    return () => window.removeEventListener('podo:professional-updated', handleProfileUpdated);
+  }, []);
+
+  const initials = profile.nombre
+    .split(/\s+/)
+    .filter((part) => !['dr.', 'dra.', 'dr', 'dra'].includes(part.toLowerCase()))
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'P';
 
   return (
     <div style={{ borderTop: '1px solid rgba(93,202,165,0.12)' }}>
@@ -166,11 +182,11 @@ function SidebarFooter({ onNavigate: _onNavigate }: { onNavigate?: () => void })
           className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
           style={{ background: '#1D9E75', color: 'white' }}
         >
-          DG
+          {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white truncate">Dr. García</p>
-          <p className="text-xs" style={{ color: '#6a9980' }}>Podólogo</p>
+          <p className="text-sm font-semibold text-white truncate">{profile.nombre}</p>
+          <p className="text-xs" style={{ color: '#6a9980' }}>{profile.especialidad}</p>
         </div>
         <button
           data-testid="button-logout"
