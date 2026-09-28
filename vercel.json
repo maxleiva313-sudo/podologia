@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "PORT=4173 BASE_PATH=/ pnpm --filter @workspace/podologia run build",
+  "outputDirectory": "artifacts/podologia/dist/public",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}
